@@ -327,14 +327,14 @@ TDatabaseContext *Tf::currentDatabaseContext()
 
     switch ( Tf::app()->multiProcessingModule() ) {
     case TWebApplication::Thread:
-        context = qobject_cast<TActionThread *>(QThread::currentThread());
+        context = dynamic_cast<TDatabaseContext *>(QThread::currentThread());
         if (Q_LIKELY(context))
             return context;
         break;
 
     case TWebApplication::Hybrid:
 #ifdef Q_OS_LINUX
-        context = qobject_cast<TActionWorker *>(QThread::currentThread());
+        context = dynamic_cast<TDatabaseContext *>(QThread::currentThread());
         if (Q_LIKELY(context))
             return context;
         break;
