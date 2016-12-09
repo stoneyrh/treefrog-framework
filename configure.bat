@@ -1,7 +1,7 @@
 @echo OFF
 @setlocal
 
-set VERSION=1.13.1
+set VERSION=1.14.0
 set TFDIR=C:\TreeFrog\%VERSION%
 
 :parse_loop
@@ -100,10 +100,6 @@ if not "%VCVARSOPT%" == "" (
   echo   set VCVARSBAT="%%VS140COMNTOOLS%%..\..\VC\vcvarsall.bat">> %TFENV%
   echo ^) else if not "%%VS120COMNTOOLS%%" == "" ^(>> %TFENV%
   echo   set VCVARSBAT="%%VS120COMNTOOLS%%..\..\VC\vcvarsall.bat">> %TFENV%
-  echo ^) else if not "%%VS110COMNTOOLS%%" == "" ^(>> %TFENV%
-  echo   set VCVARSBAT="%%VS110COMNTOOLS%%..\..\VC\vcvarsall.bat">> %TFENV%
-  echo ^) else if not "%%VS100COMNTOOLS%%" == "" ^(>> %TFENV%
-  echo   set VCVARSBAT="%%VS100COMNTOOLS%%..\..\VC\vcvarsall.bat">> %TFENV%
   echo ^) else ^(>> %TFENV%
   echo   set VCVARSBAT="">> %TFENV%
   echo ^)>> %TFENV%

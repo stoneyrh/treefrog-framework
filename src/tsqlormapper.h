@@ -56,9 +56,6 @@ public:
 
     int findCount(const TCriteria &cri = TCriteria());
     int findCountBy(int column, QVariant value);
-    QList<T> findAll(const TCriteria &cri = TCriteria());
-    QList<T> findAllBy(int column, QVariant value);
-    QList<T> findAllIn(int column, const QVariantList &values);
     int updateAll(const TCriteria &cri, int column, QVariant value);
     int updateAll(const TCriteria &cri, const QMap<int, QVariant> &values);
     int removeAll(const TCriteria &cri = TCriteria());
@@ -398,14 +395,14 @@ inline QString TSqlORMapper<T>::selectStatement() const
     query += QLatin1String(" t0");  // alias needed
 
     if (joinFlag) {
-        for (auto &join : joinClauses) {
+        for (auto &join : (const QStringList&)joinClauses) {
             query += join;
         }
     }
 
     QString filter = queryFilter;
     if (!joinWhereClauses.isEmpty()) {
-        for (auto &wh : joinWhereClauses) {
+        for (auto &wh : (const QStringList&)joinWhereClauses) {
             if (!filter.isEmpty()) {
                 filter += QLatin1String(" AND ");
             }
@@ -471,55 +468,55 @@ inline int TSqlORMapper<T>::findCountBy(int column, QVariant value)
     return findCount(TCriteria(column, value));
 }
 
-/*!
-  Returns a list of all ORM objects in the results retrieved with the
-  criteria \a cri from the table.
-*/
-template <class T>
-inline QList<T> TSqlORMapper<T>::findAll(const TCriteria &cri)
-{
-    if (!cri.isEmpty()) {
-        TCriteriaConverter<T> conv(cri, database(), "t0");
-        setFilter(conv.toString());
-    } else {
-        setFilter(QString());
-    }
+// /*!
+//   Returns a list of all ORM objects in the results retrieved with the
+//   criteria \a cri from the table.
+// */
+// template <class T>
+// inline QList<T> TSqlORMapper<T>::findAll(const TCriteria &cri)
+// {
+//     if (!cri.isEmpty()) {
+//         TCriteriaConverter<T> conv(cri, database(), "t0");
+//         setFilter(conv.toString());
+//     } else {
+//         setFilter(QString());
+//     }
 
-    QList<T> list;
-    bool ret = select();
-    tWriteQueryLog(query().lastQuery(), ret, lastError());
+//     QList<T> list;
+//     bool ret = select();
+//     tWriteQueryLog(query().lastQuery(), ret, lastError());
 
-    if (ret) {
-        tSystemDebug("rowCount: %d", rowCount());
-        for (int i = 0; i < rowCount(); ++i) {
-            T rec;
-            rec.setRecord(record(i), QSqlError());
-            list << rec;
-        }
-    }
+//     if (ret) {
+//         tSystemDebug("rowCount: %d", rowCount());
+//         for (int i = 0; i < rowCount(); ++i) {
+//             T rec;
+//             rec.setRecord(record(i), QSqlError());
+//             list << rec;
+//         }
+//     }
 
-    return list;
-}
+//     return list;
+// }
 
-/*!
-  Returns a list of all ORM objects in the results retrieved with the criteria
-  for the \a column as the \a value.
-*/
-template <class T>
-inline QList<T> TSqlORMapper<T>::findAllBy(int column, QVariant value)
-{
-    return findAll(TCriteria(column, value));
-}
+// /*!
+//   Returns a list of all ORM objects in the results retrieved with the criteria
+//   for the \a column as the \a value.
+// */
+// template <class T>
+// inline QList<T> TSqlORMapper<T>::findAllBy(int column, QVariant value)
+// {
+//     return findAll(TCriteria(column, value));
+// }
 
-/*!
-  Returns a list of all ORM objects in the results retrieved with the criteria
-  that the \a column is within the list of values \a values.
-*/
-template <class T>
-inline QList<T> TSqlORMapper<T>::findAllIn(int column, const QVariantList &values)
-{
-    return findAll(TCriteria(column, TSql::In, values));
-}
+// /*!
+//   Returns a list of all ORM objects in the results retrieved with the criteria
+//   that the \a column is within the list of values \a values.
+// */
+// template <class T>
+// inline QList<T> TSqlORMapper<T>::findAllIn(int column, const QVariantList &values)
+// {
+//     return findAll(TCriteria(column, TSql::In, values));
+// }
 
 /*!
   Updates the values of the columns specified in the first elements in the each pairs of \a values in

@@ -14,12 +14,6 @@
 #include <TDispatcher>
 #include <TActionController>
 #include "tapplicationserverbase.h"
-#include "tsqldatabasepool.h"
-#include "tkvsdatabasepool.h"
-#include "turlroute.h"
-#include "tsystemglobal.h"
-#include "tsystembus.h"
-#include "tpublisher.h"
 
 /*!
   \class TApplicationServerBase
@@ -34,6 +28,7 @@ static QDateTime loadedTimestamp;
 bool TApplicationServerBase::loadLibraries()
 {
     T_TRACEFUNC("");
+    bool ret = true;
 
     // Loads libraries
     if (libsLoaded.isEmpty()) {
@@ -50,22 +45,25 @@ bool TApplicationServerBase::loadLibraries()
         loadedTimestamp = latestLibraryTimestamp();
 
 #if defined(Q_OS_WIN)
-        QStringList libs = { "controller", "view" };
+        const QStringList libs = { "controller", "view" };
 #elif defined(Q_OS_LINUX)
-        QStringList libs = { "libcontroller.so", "libview.so" };
+        const QStringList libs = { "libcontroller.so", "libview.so" };
 #elif defined(Q_OS_DARWIN)
-        QStringList libs = { "libcontroller.dylib", "libview.dylib" };
+        const QStringList libs = { "libcontroller.dylib", "libview.dylib" };
 #else
-        QStringList libs = { "libcontroller.so", "libview.so" };
+        const QStringList libs = { "libcontroller.so", "libview.so" };
 #endif
 
-        for (const auto &libname : libs) {
+        for (auto &libname : libs) {
             auto lib = new QLibrary(libname);
             if (lib->load()) {
                 tSystemDebug("Library loaded: %s", qPrintable(lib->fileName()));
                 libsLoaded << lib;
             } else {
                 tSystemWarn("%s", qPrintable(lib->errorString()));
+                ret = false;
+                unloadLibraries();
+                break;
             }
         }
 
@@ -74,31 +72,36 @@ bool TApplicationServerBase::loadLibraries()
     }
     QDir::setCurrent(Tf::app()->webRootPath());
 
-    TSystemBus::instantiate();
-    TPublisher::instantiate();
-    TUrlRoute::instantiate();
-    TSqlDatabasePool::instantiate();
-    TKvsDatabasePool::instantiate();
-    return true;
+    return ret;
+}
+
+
+void TApplicationServerBase::unloadLibraries()
+{
+    for (auto lib : libsLoaded) {
+        lib->unload();
+        tSystemDebug("Library unloaded: %s", qPrintable(lib->fileName()));
+    }
+    libsLoaded.clear();
 }
 
 
 QDateTime TApplicationServerBase::latestLibraryTimestamp()
 {
 #if defined(Q_OS_WIN)
-    QStringList libs = { "controller", "model", "view", "helper" };
+    const QStringList libs = { "controller", "model", "view", "helper" };
 #elif defined(Q_OS_LINUX)
-    QStringList libs = { "libcontroller.so", "libmodel.so", "libview.so", "libhelper.so" };
+    const QStringList libs = { "libcontroller.so", "libmodel.so", "libview.so", "libhelper.so" };
 #elif defined(Q_OS_DARWIN)
-    QStringList libs = { "libcontroller.dylib", "libmodel.dylib", "libview.dylib", "libhelper.dylib" };
+    const QStringList libs = { "libcontroller.dylib", "libmodel.dylib", "libview.dylib", "libhelper.dylib" };
 #else
-    QStringList libs = { "libcontroller.so", "libmodel.so", "libview.so", "libhelper.so" };
+    const QStringList libs = { "libcontroller.so", "libmodel.so", "libview.so", "libhelper.so" };
 #endif
 
     QDateTime ret = QDateTime::fromTime_t(0);
 
     QString libPath = Tf::app()->libPath();
-    for (auto lib : libs) {
+    for (auto &lib : libs) {
         QFileInfo fi(libPath + lib);
         if (fi.isFile() && fi.lastModified() > ret) {
             ret = fi.lastModified();

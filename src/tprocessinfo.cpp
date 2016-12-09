@@ -43,7 +43,7 @@ bool TProcessInfo::waitForTerminated(int msecs)
 QList<qint64> TProcessInfo::childProcessIds() const
 {
     QList<qint64> ids;
-    QList<qint64> allPids = allConcurrentPids();
+    const QList<qint64> allPids = allConcurrentPids();
 
     for (qint64 p : allPids) {
         if (TProcessInfo(p).ppid() == pid()) {
@@ -62,7 +62,7 @@ void TProcessInfo::kill(qint64 ppid)
 
 void TProcessInfo::kill(QList<qint64> pids)
 {
-    for (qint64 pid : pids) {
+    for (qint64 pid : (const QList<qint64>&)pids) {
         TProcessInfo(pid).kill();
     }
 }
@@ -71,7 +71,7 @@ void TProcessInfo::kill(QList<qint64> pids)
 QList<qint64> TProcessInfo::pidsOf(const QString &processName)
 {
     QList<qint64> ret;
-    QList<qint64> pids = allConcurrentPids();
+    const QList<qint64> pids = allConcurrentPids();
 
     for (auto pid : pids) {
         TProcessInfo pi(pid);

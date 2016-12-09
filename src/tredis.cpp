@@ -231,7 +231,7 @@ QList<QByteArray> TRedis::lrange(const QByteArray &key, int start, int end = -1)
     QList<QByteArray> command = { "LRANGE", key, QByteArray::number(start), QByteArray::number(end) };
     bool res = driver()->request(command, resp);
     if (res) {
-        for (auto &var : resp) {
+        for (auto &var : (const QVariantList&)resp) {
             ret << var.toByteArray();
         }
     }

@@ -231,7 +231,7 @@ void TPublisher::instantiate()
 
 void TPublisher::receiveSystemBus()
 {
-    auto messages = TSystemBus::instance()->recvAll();
+    const auto messages = TSystemBus::instance()->recvAll();
 
     for (auto &msg : messages) {
         switch (msg.opCode()) {

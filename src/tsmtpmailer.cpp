@@ -7,7 +7,6 @@
 
 #include <QSslSocket>
 #include <QHostAddress>
-#include <QStringListIterator>
 #include <QDateTime>
 #include <QTimer>
 #include <QMutex>
@@ -243,7 +242,7 @@ bool TSmtpMailer::cmdEhlo()
     }
 
     // Gets AUTH methods
-    for (auto &s : reply) {
+    for (auto &s : (const QList<QByteArray>&)reply) {
         QString str(s);
         if (str.startsWith("AUTH ", Qt::CaseInsensitive)) {
             svrAuthMethods = str.mid(5).split(' ', QString::SkipEmptyParts);
@@ -344,8 +343,8 @@ bool TSmtpMailer::cmdRcpt(const QList<QByteArray> &to)
     if (to.isEmpty())
         return false;
 
-    for (QListIterator<QByteArray> i(to); i.hasNext(); ) {
-        QByteArray rcpt("RCPT TO:<" + i.next() + '>');
+    for (auto &tostr : to) {
+        QByteArray rcpt("RCPT TO:<" + tostr + '>');
         if (cmd(rcpt) != 250) {
             return false;
         }
