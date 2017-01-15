@@ -6,9 +6,9 @@
 #include <TfNamespace>
 #include <cstdint>
 
-#define TF_VERSION_STR "1.14.0"
-#define TF_VERSION_NUMBER 0x011400
-#define TF_SRC_REVISION 1266
+#define TF_VERSION_STR "1.15.0"
+#define TF_VERSION_NUMBER 0x011500
+#define TF_SRC_REVISION 1275
 
 
 #define T_DECLARE_CONTROLLER(TYPE, NAME)  \
@@ -216,7 +216,7 @@ private:
 #  define T_CHECK_NO_CHANGE(val, type)
 #endif  // TF_NO_DEBUG
 
-#include "tfnamespace.h"
+#include <TWebApplication>
 #include "tfexception.h"
 
 #endif // TGLOBAL_H

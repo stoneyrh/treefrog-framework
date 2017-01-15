@@ -2,6 +2,7 @@
 #define TSMTPMAILER_H
 
 #include <QObject>
+#include <QMutex>
 #include <QStringList>
 #include <QByteArray>
 #include <TMailMessage>
@@ -34,7 +35,9 @@ public:
     void setPopBeforeSmtpAuthEnabled(const QString &popServer, quint16 port, bool apop, bool enable);
     void setUserName(const QByteArray &username);
     void setPassword(const QByteArray &password);
+    QString lastServerResponse() const;
 
+    void moveToThread(QThread *targetThread);
     bool send(const TMailMessage &message);
     void sendLater(const TMailMessage &message);
 
@@ -64,6 +67,7 @@ private:
     T_DISABLE_MOVE(TSmtpMailer)
 
     QSslSocket *socket;
+    QMutex sendMutex;
     QString smtpHostName;
     quint16 smtpPort;
     TMailMessage mailMessage;
@@ -74,6 +78,7 @@ private:
     QByteArray userName;
     QByteArray password;
     TPopMailer *pop;
+    QByteArray lastResponse;
 };
 
 

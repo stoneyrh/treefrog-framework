@@ -8,6 +8,10 @@
 #include <QDir>
 #include <QTextCodec>
 #include <QDateTime>
+#if QT_VERSION >= 0x050000
+# include <QJsonDocument>
+# include <QJsonObject>
+#endif
 #include <TWebApplication>
 #include <TSystemGlobal>
 #include <TAppSettings>
@@ -40,17 +44,7 @@ TWebApplication::TWebApplication(int &argc, char **argv)
 #else
     : QCoreApplication(argc, argv),
 #endif
-      dbEnvironment(DEFAULT_DATABASE_ENVIRONMENT),
-      sqlSettings(0),
-      mongoSetting(0),
-      redisSetting(0),
-      loggerSetting(0),
-      validationSetting(0),
-      mediaTypes(0),
-      codecInternal(0),
-      codecHttp(0),
-      appServerId(-1),
-      mpm(Invalid)
+      dbEnvironment(DEFAULT_DATABASE_ENVIRONMENT)
 {
 #if defined(Q_OS_WIN) && QT_VERSION >= 0x050000
     installNativeEventFilter(new TNativeEventFilter);
@@ -93,8 +87,12 @@ TWebApplication::TWebApplication(int &argc, char **argv)
     TAppSettings::instantiate(appSettingsFilePath());
     loggerSetting = new QSettings(configPath() + "logger.ini", QSettings::IniFormat, this);
     validationSetting = new QSettings(configPath() + "validation.ini", QSettings::IniFormat, this);
-    mediaTypes = new QSettings(configPath() + "initializers" + QDir::separator() + "internet_media_types.ini", QSettings::IniFormat, this);
-
+    // Internet media types
+    if (QFileInfo(configPath() + "internet_media_types.ini").exists()) {
+        mediaTypes = new QSettings(configPath() + "internet_media_types.ini", QSettings::IniFormat, this);
+    } else {
+        mediaTypes = new QSettings(configPath() + "initializers" + QDir::separator() + "internet_media_types.ini", QSettings::IniFormat, this);
+    }
     // Gets codecs
     codecInternal = searchCodec(Tf::appSettings()->value(Tf::InternalEncoding).toByteArray().trimmed().data());
     codecHttp = searchCodec(Tf::appSettings()->value(Tf::HttpOutputEncoding).toByteArray().trimmed().data());
@@ -476,6 +474,57 @@ QThread *TWebApplication::databaseContextMainThread() const
     static TDatabaseContextMainThread databaseThread;
     databaseThread.start();
     return &databaseThread;
+}
+
+
+const QVariantMap &TWebApplication::getConfig(const QString &configName)
+{
+    auto cnf = configName.toLower();
+
+    if (!configMap.contains(cnf)) {
+        QDir dir(configPath());
+        QStringList filters = { configName + ".*", configName };
+        const auto filist = dir.entryInfoList(filters);
+
+        if (filist.isEmpty()) {
+            tSystemWarn("No such config, %s", qPrintable(configName));
+        } else {
+            for (auto &fi : filist) {
+                auto suffix = fi.completeSuffix().toLower();
+                if (suffix == "ini") {
+                    // INI format
+                    QVariantMap map;
+                    QSettings settings(fi.absoluteFilePath(), QSettings::IniFormat);
+                    for (auto &k : (const QStringList &)settings.allKeys()) {
+                        map.insert(k, settings.value(k));
+                    }
+                    configMap.insert(cnf, map);
+                    break;
+
+#if QT_VERSION >= 0x050000
+                } else if (suffix == "json") {
+                    // JSON format
+                    QFile jsonFile(fi.absoluteFilePath());
+                    if (jsonFile.open(QIODevice::ReadOnly)) {
+                        auto json = QJsonDocument::fromJson(jsonFile.readAll()).object();
+                        jsonFile.close();
+                        configMap.insert(cnf, json.toVariantMap());
+                        break;
+                    }
+#endif
+                } else {
+                    tSystemWarn("Invalid format config, %s", qPrintable(fi.fileName()));
+                }
+            }
+        }
+    }
+    return configMap[cnf];
+}
+
+
+QVariant TWebApplication::getConfigValue(const QString &configName, const QString &key, const QVariant &defaultValue)
+{
+    return getConfig(configName).value(key, defaultValue);
 }
 
 

@@ -50,6 +50,28 @@ TFormValidator::RuleEntry::RuleEntry(const QString &k, int r, const QRegExp &rx,
 */
 
 /*!
+  Copy constructor.
+ */
+TFormValidator::TFormValidator(const TFormValidator &other)
+    : rules(other.rules), errors(other.errors), dateFmt(other.dateFmt), timeFmt(other.timeFmt),
+      dateTimeFmt(other.dateTimeFmt), values(other.values)
+{ }
+
+/*!
+  Assignment operator.
+ */
+TFormValidator &TFormValidator::operator=(const TFormValidator &other)
+{
+    rules = other.rules;
+    errors = other.errors;
+    dateFmt = other.dateFmt;
+    timeFmt = other.timeFmt;
+    dateTimeFmt = other.dateTimeFmt;
+    values = other.values;
+    return *this;
+}
+
+/*!
   Returns the date format specified by the validation settings file.
 */
 QString TFormValidator::dateFormat() const
@@ -213,6 +235,7 @@ void TFormValidator::setPatternRule(const QString &key, const QRegExp &rx, const
  */
 bool TFormValidator::validate(const QVariantMap &map)
 {
+    values = map;
     errors.clear();
 
     // Add default rules, Tf::Required.
@@ -350,6 +373,28 @@ bool TFormValidator::validate(const QVariantMap &map)
 }
 
 /*!
+  Returns false if validation error is not set, otherwise true.
+ */
+bool TFormValidator::hasValidationError() const
+{
+    return !errors.isEmpty();
+}
+
+/*!
+  Returns true if an validation error is set for the key \a key,
+  otherwise false.
+ */
+bool TFormValidator::isValidationError(const QString &key) const
+{
+    for (auto &err : errors) {
+        if (err.first == key) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/*!
   Returns a list of all keys of validation errors.
   This function must be call after calling \a validate() function.
  */
@@ -414,6 +459,14 @@ QStringList TFormValidator::errorMessages() const
 }
 
 /*!
+  Returns the value associated with the key \a key.
+ */
+QString TFormValidator::value(const QString &key, const QString &defaultValue) const
+{
+    return values.value(key, defaultValue).toString();
+}
+
+/*!
   Returns true if the rules contains an item with the key;
   otherwise returns false.
  */
@@ -443,11 +496,21 @@ void TFormValidator::removeRule(const QString &key, Tf::ValidationRule rule)
 
 /*!
   Sets the message of custom validation error to \a errorMessage.
+  [obsolete]
 */
 void TFormValidator::setValidationError(const QString &errorMessage)
 {
-    errors << qMakePair(QString("_CustomValidationError"), (int)Tf::Custom);
-    rules.append(RuleEntry("_CustomValidationError", Tf::Custom, "dummy", errorMessage));
+    setValidationError(QLatin1String("_CustomValidationError"), errorMessage);
+}
+
+/*!
+  Sets the message of custom validation error to \a errorMessage for the
+  key \a key.
+*/
+void TFormValidator::setValidationError(const QString &key, const QString &errorMessage)
+{
+    errors << qMakePair(key, (int)Tf::Custom);
+    rules.append(RuleEntry(key, Tf::Custom, "dummy", errorMessage));
 }
 
 /*!
