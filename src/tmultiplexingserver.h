@@ -25,16 +25,16 @@ public:
     ~TMultiplexingServer();
 
     bool isListening() const { return listenSocket > 0; }
-    bool start();
-    void stop();
-    void setAutoReloadingEnabled(bool enable);
-    bool isAutoReloadingEnabled();
+    bool start(bool debugMode) override;
+    void stop() override;
+    void setAutoReloadingEnabled(bool enable) override;
+    bool isAutoReloadingEnabled() override;
 
     static void instantiate(int listeningSocket);
     static TMultiplexingServer *instance();
 
 protected:
-    void run();
+    void run() override;
     void timerEvent(QTimerEvent *event);
 
 signals:

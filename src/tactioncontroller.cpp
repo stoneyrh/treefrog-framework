@@ -1,4 +1,4 @@
-﻿/* Copyright (c) 2010-2015, AOYAMA Kazuharu
+﻿/* Copyright (c) 2010-2017, AOYAMA Kazuharu
  * All rights reserved.
  *
  * This software may be used and distributed according to the terms of
@@ -829,6 +829,19 @@ QHostAddress TActionController::clientAddress() const
 }
 
 /*!
+  Sets the flash message of \a name to \a value.
+  \sa flash()
+*/
+void TActionController::setFlash(const QString &name, const QVariant &value)
+{
+    if (value.isValid()) {
+        flashVars.insert(name, value);
+    } else {
+        tSystemWarn("An invalid QVariant object for setFlash(), name:%s", qPrintable(name));
+    }
+}
+
+/*!
   \~english
   Sets the validation errors to flash variant.
 
@@ -956,14 +969,6 @@ void TActionController::closeWebSokcet(int sid, int closeCode)
   Returns the flash message for \a name.
   \sa setFlash()
 */
-
-/*!
-  \fn void TActionController::setFlash(const QString &name, const QVariant &value)
-
-  Sets the flash message of \a name to \a value.
-  \sa flash()
-*/
-
 
 /*!
   \fn void TActionController::setStatusCode(int code);

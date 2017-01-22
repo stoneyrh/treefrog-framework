@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2015, AOYAMA Kazuharu
+/* Copyright (c) 2011-2017, AOYAMA Kazuharu
  * All rights reserved.
  *
  * This software may be used and distributed according to the terms of
@@ -9,7 +9,6 @@
 #include <QHostAddress>
 #include <QDateTime>
 #include <QTimer>
-#include <QMutex>
 #include <QCoreApplication>
 #include <TCryptMac>
 #include <TPopMailer>
@@ -25,8 +24,6 @@
 //#define tSystemError(fmt, ...)  printf(fmt "\n", ## __VA_ARGS__)
 //#define tSystemDebug(fmt, ...)  printf(fmt "\n", ## __VA_ARGS__)
 
-static QMutex sendMutex;
-
 /*!
   \class TSmtpMailer
   \brief The TSmtpMailer class provides a simple functionality to send
@@ -34,13 +31,13 @@ static QMutex sendMutex;
 */
 
 TSmtpMailer::TSmtpMailer(QObject *parent)
-    : QObject(parent), socket(new QSslSocket), smtpPort(0), authEnable(false),
+    : QObject(parent), socket(new QSslSocket()), sendMutex(), smtpPort(0), authEnable(false),
       tlsEnable(false), tlsAvailable(false), pop(nullptr)
 { }
 
 
 TSmtpMailer::TSmtpMailer(const QString &hostName, quint16 port, QObject *parent)
-    : QObject(parent), socket(new QSslSocket), smtpHostName(hostName), smtpPort(port),
+    : QObject(parent), socket(new QSslSocket()), sendMutex(), smtpHostName(hostName), smtpPort(port),
       authEnable(false), tlsEnable(false), tlsAvailable(false), pop(nullptr)
 { }
 
@@ -56,6 +53,16 @@ TSmtpMailer::~TSmtpMailer()
         delete pop;
     }
     delete socket;
+}
+
+
+void TSmtpMailer::moveToThread(QThread *targetThread)
+{
+    QObject::moveToThread(targetThread);
+    socket->moveToThread(targetThread);
+    if (pop) {
+        pop->moveToThread(targetThread);
+    }
 }
 
 
@@ -91,6 +98,12 @@ void TSmtpMailer::setPopBeforeSmtpAuthEnabled(const QString &popServer, quint16 
 }
 
 
+QString TSmtpMailer::lastServerResponse() const
+{
+    return QString(lastResponse);
+}
+
+
 bool TSmtpMailer::send(const TMailMessage &message)
 {
     T_TRACEFUNC("");
@@ -107,14 +120,13 @@ void TSmtpMailer::sendLater(const TMailMessage &message)
     T_TRACEFUNC("");
 
     mailMessage = message;
-    QTimer::singleShot(0, this, SLOT(sendAndDeleteLater()));
+    QTimer::singleShot(1, this, SLOT(sendAndDeleteLater()));
 }
 
 
 void TSmtpMailer::sendAndDeleteLater()
 {
     T_TRACEFUNC("");
-
     send();
     mailMessage.clear();
     deleteLater();
@@ -123,7 +135,7 @@ void TSmtpMailer::sendAndDeleteLater()
 
 bool TSmtpMailer::send()
 {
-    QMutexLocker locker(&sendMutex); // Global lock for load reduction of mail server
+    QMutexLocker locker(&sendMutex); // Lock for load reduction of mail server
 
     if (pop) {
         // POP before SMTP
@@ -174,32 +186,32 @@ bool TSmtpMailer::send()
 
     if (authEnable) {
         if (!cmdAuth()) {
-            tSystemError("SMTP: User Authentication Failed: username:%s", userName.data());
+            tSystemError("SMTP: User Authentication Failed: username:%s : [%s]", userName.data(), qPrintable(lastServerResponse()));
             cmdQuit();
             return false;
         }
     }
 
     if (!cmdRset()) {
-        tSystemError("SMTP: RSET Command Failed");
+        tSystemError("SMTP: RSET Command Failed: [%s]", qPrintable(lastServerResponse()));
         cmdQuit();
         return false;
     }
 
     if (!cmdMail(mailMessage.fromAddress())) {
-        tSystemError("SMTP: MAIL Command Failed");
+        tSystemError("SMTP: MAIL Command Failed: [%s]", qPrintable(lastServerResponse()));
         cmdQuit();
         return false;
     }
 
     if (!cmdRcpt(mailMessage.recipients())) {
-        tSystemError("SMTP: RCPT Command Failed");
+        tSystemError("SMTP: RCPT Command Failed: [%s]", qPrintable(lastServerResponse()));
         cmdQuit();
         return false;
     }
 
     if (!cmdData(mailMessage.toByteArray())) {
-        tSystemError("SMTP: DATA Command Failed");
+        tSystemError("SMTP: DATA Command Failed: [%s]", qPrintable(lastServerResponse()));
         cmdQuit();
         return false;
     }
@@ -372,6 +384,7 @@ bool TSmtpMailer::cmdQuit()
 
 int TSmtpMailer::cmd(const QByteArray &command, QList<QByteArray> *reply)
 {
+    lastResponse.clear();
     if (!write(command))
         return -1;
 
@@ -399,8 +412,9 @@ int TSmtpMailer::read(QList<QByteArray> *reply)
         reply->clear();
 
     int code = 0;
+    QByteArray rcv;
     for (;;) {
-        QByteArray rcv = socket->readLine().trimmed();
+        rcv = socket->readLine().trimmed();
         if (rcv.isEmpty()) {
             if (socket->waitForReadyRead(5000)) {
                 continue;
@@ -425,6 +439,7 @@ int TSmtpMailer::read(QList<QByteArray> *reply)
         if (code > 0 && rcv.at(3) == ' ')
             break;
     }
+    lastResponse = rcv;
     return code;
 }
 

@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2015, AOYAMA Kazuharu
+/* Copyright (c) 2010-2017, AOYAMA Kazuharu
  * All rights reserved.
  *
  * This software may be used and distributed according to the terms of
@@ -15,17 +15,17 @@
 #define DEFAULT_TEXT_ENCODING "DefaultTextEncoding"
 
 
-class PriorityHash : public QMap<TLogger::Priority, QByteArray>
+class PriorityHash : public QMap<Tf::LogPriority, QByteArray>
 {
 public:
-    PriorityHash() : QMap<TLogger::Priority, QByteArray>()
+    PriorityHash() : QMap<Tf::LogPriority, QByteArray>()
     {
-        insert(TLogger::Fatal, "FATAL");
-        insert(TLogger::Error, "ERROR");
-        insert(TLogger::Warn,  "WARN");
-        insert(TLogger::Info,  "INFO");
-        insert(TLogger::Debug, "DEBUG");
-        insert(TLogger::Trace, "TRACE");
+        insert(Tf::FatalLevel, "FATAL");
+        insert(Tf::ErrorLevel, "ERROR");
+        insert(Tf::WarnLevel,  "WARN");
+        insert(Tf::InfoLevel,  "INFO");
+        insert(Tf::DebugLevel, "DEBUG");
+        insert(Tf::TraceLevel, "TRACE");
     }
 };
 Q_GLOBAL_STATIC(PriorityHash, priorityHash)
@@ -39,7 +39,7 @@ Q_GLOBAL_STATIC(PriorityHash, priorityHash)
 /*!
   Constructor.
 */
-TLogger::TLogger() : threshold_(Trace), codec_(0)
+TLogger::TLogger() : threshold_(Tf::TraceLevel), codec_(nullptr)
 { }
 
 /*!
@@ -69,9 +69,10 @@ QByteArray TLogger::logToByteArray(const TLog &log) const
 QByteArray TLogger::logToByteArray(const TLog &log, const QByteArray &layout, const QByteArray &dateTimeFormat, QTextCodec *codec)
 {
     QByteArray message;
+    int pos = 0;
+    QByteArray dig;
     message.reserve(layout.length() + log.message.length() + 100);
 
-    int pos = 0;
     while (pos < layout.length()) {
         char c = layout.at(pos++);
         if (c != '%') {
@@ -79,7 +80,7 @@ QByteArray TLogger::logToByteArray(const TLog &log, const QByteArray &layout, co
             continue;
         }
 
-        QByteArray dig;
+        dig.clear();
         for (;;) {
             if (pos >= layout.length()) {
                 message.append('%').append(dig);
@@ -92,14 +93,18 @@ QByteArray TLogger::logToByteArray(const TLog &log, const QByteArray &layout, co
                 continue;
             }
 
-            if (c == 'd') {  // %d : timestamp
+            switch (c) {
+            case 'd':  // %d : timestamp
                 if (!dateTimeFormat.isEmpty()) {
                     message.append(log.timestamp.toString(dateTimeFormat).toLatin1());
                 } else {
                     message.append(log.timestamp.toString(Qt::ISODate).toLatin1());
                 }
-            } else if (c == 'p' || c == 'P') {  // %p or %P : priority
-                QByteArray pri = priorityToString((TLogger::Priority)log.priority);
+                break;
+
+            case 'p':
+            case 'P': {  // %p or %P : priority
+                QByteArray pri = priorityToString((Tf::LogPriority)log.priority);
                 if (c == 'p') {
                     pri = pri.toLower();
                 }
@@ -110,25 +115,37 @@ QByteArray TLogger::logToByteArray(const TLog &log, const QByteArray &layout, co
                         message.append(QByteArray(d, ' '));
                     }
                 }
+                break; }
 
-            } else if (c == 't' || c == 'T') {  // %t or %T : thread ID (dec or hex)
-                QChar fillChar = (dig.length() > 0 && dig[0] == '0') ? QLatin1Char('0') : QLatin1Char(' ');
+            case 't':
+            case 'T': { // %t or %T : thread ID (dec or hex)
+                const QChar fillChar = (dig.length() > 0 && dig[0] == '0') ? QLatin1Char('0') : QLatin1Char(' ');
                 message.append(QString("%1").arg((qulonglong)log.threadId, dig.toInt(), ((c == 't') ? 10 : 16), fillChar).toLatin1());
+                break; }
 
-            } else if (c == 'i' || c == 'I') {  // %i or %I : PID (dec or hex)
-                QChar fillChar = (dig.length() > 0 && dig[0] == '0') ? QLatin1Char('0') : QLatin1Char(' ');
+            case 'i':
+            case 'I': {  // %i or %I : PID (dec or hex)
+                const QChar fillChar = (dig.length() > 0 && dig[0] == '0') ? QLatin1Char('0') : QLatin1Char(' ');
                 message.append(QString("%1").arg(log.pid, dig.toInt(), ((c == 'i') ? 10 : 16), fillChar).toLatin1());
+                break; }
 
-            } else if (c == 'n') {  // %n : newline
+            case 'n':  // %n : newline
                 message.append('\n');
-            } else if (c == 'm') {  // %m : message
+                break;
+
+            case 'm':  // %m : message
                 message.append(log.message);
-            } else if (c == '%') {
+                break;
+
+            case '%':
                 message.append('%').append(dig);
                 dig.clear();
                 continue;
-            } else {
+                break;
+
+            default:
                 message.append('%').append(dig).append(c);
+                break;
             }
             break;
         }
@@ -140,7 +157,7 @@ QByteArray TLogger::logToByteArray(const TLog &log, const QByteArray &layout, co
 /*!
   Returns a QByteArray containing the priority \a priority.
 */
-QByteArray TLogger::priorityToString(Priority priority)
+QByteArray TLogger::priorityToString(Tf::LogPriority priority)
 {
     return priorityHash()->value(priority);
 }
@@ -169,7 +186,7 @@ void TLogger::readSettings()
     dateTimeFormat_ = settingsValue("DateTimeFormat").toByteArray();
 
     QByteArray pri = settingsValue("Threshold", "trace").toByteArray().toUpper().trimmed();
-    threshold_ = priorityHash()->key(pri, TLogger::Trace);
+    threshold_ = priorityHash()->key(pri, Tf::TraceLevel);
 
     QFileInfo fi(settingsValue("Target", "log/app.log").toString());
     target_ = (fi.isAbsolute()) ? fi.absoluteFilePath() : Tf::app()->webRootPath() + fi.filePath();

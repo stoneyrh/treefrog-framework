@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2015, AOYAMA Kazuharu
+/* Copyright (c) 2011-2017, AOYAMA Kazuharu
  * All rights reserved.
  *
  * This software may be used and distributed according to the terms of
@@ -6,6 +6,7 @@
  */
 
 #include <TActionMailer>
+#include <TWebApplication>
 #include <TAppSettings>
 #include <TDispatcher>
 #include <TActionView>
@@ -94,6 +95,7 @@ bool TActionMailer::deliver(const QString &templateName)
 
         // Sends email
         if (delay) {
+            mailer->moveToThread(Tf::app()->databaseContextMainThread());
             mailer->sendLater(mail);
         } else {
             mailer->send(mail);
@@ -113,6 +115,7 @@ bool TActionMailer::deliver(const QString &templateName)
             QList<QByteArray> recipients = mail.recipients();
 
             if (delay) {
+                mailer->moveToThread(Tf::app()->databaseContextMainThread());
                 mailer->sendLater(mail);
             } else {
                 mailer->send(mail);

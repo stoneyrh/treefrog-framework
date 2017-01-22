@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2015, AOYAMA Kazuharu
+/* Copyright (c) 2010-2017, AOYAMA Kazuharu
  * All rights reserved.
  *
  * This software may be used and distributed according to the terms of
@@ -81,6 +81,7 @@ int ViewConverter::convertView(const QString &templateSystem) const
         QStringList filter;
         if (dir.dirName() == QLatin1String("mailer")) {
             filter = ErbFilter;
+            trimMode = qMin(trimMode, 1);  // max of trim-mode of mailer is 1
         } else {
             filter = (templateSystem.toLower() == QLatin1String("otama")) ? OtamaFilter : ErbFilter;
         }

@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2015, AOYAMA Kazuharu
+/* Copyright (c) 2010-2017, AOYAMA Kazuharu
  * All rights reserved.
  *
  * This software may be used and distributed according to the terms of
@@ -33,8 +33,8 @@ TActionContext::TActionContext()
     : TDatabaseContext(),
       stopped(false),
       socketDesc(0),
-      currController(0),
-      httpReq(0)
+      currController(nullptr),
+      httpReq(nullptr)
 { }
 
 
@@ -130,7 +130,7 @@ void TActionContext::execute(THttpRequest &request, int sid)
             if (Tf::appSettings()->value(Tf::EnableCsrfProtectionModule, true).toBool()
                 && currController->csrfProtectionEnabled() && !currController->exceptionActionsOfCsrfProtection().contains(rt.action)) {
 
-                if (method == Tf::Post || method == Tf::Put || method == Tf::Delete) {
+                if (method == Tf::Post || method == Tf::Put || method == Tf::Patch || method == Tf::Delete) {
                     if (!currController->verifyRequest(*httpReq)) {
                         throw SecurityException("Invalid authenticity token", __FILE__, __LINE__);
                     }

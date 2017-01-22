@@ -70,6 +70,8 @@ public:
     QTextCodec *codecForHttpOutput() const { return codecHttp; }
     int applicationServerId() const { return appServerId; }
     QThread *databaseContextMainThread() const;
+    const QVariantMap &getConfig(const QString &configName);
+    QVariant getConfigValue(const QString &configName, const QString &key, const QVariant &defaultValue = QVariant());
 
 #if defined(Q_OS_UNIX)
     void watchUnixSignal(int sig, bool watch = true);
@@ -99,16 +101,17 @@ private:
     QString webRootAbsolutePath;
     QString dbEnvironment;
     QVector<QSettings *> sqlSettings;
-    QSettings *mongoSetting;
-    QSettings *redisSetting;
-    QSettings *loggerSetting;
-    QSettings *validationSetting;
-    QSettings *mediaTypes;
-    QTextCodec *codecInternal;
-    QTextCodec *codecHttp;
-    int appServerId;
+    QSettings *mongoSetting  {nullptr};
+    QSettings *redisSetting  {nullptr};
+    QSettings *loggerSetting  {nullptr};
+    QSettings *validationSetting  {nullptr};
+    QSettings *mediaTypes  {nullptr};
+    QTextCodec *codecInternal  {nullptr};
+    QTextCodec *codecHttp  {nullptr};
+    int appServerId  {-1};
     QBasicTimer timer;
-    mutable MultiProcessingModule mpm;
+    mutable MultiProcessingModule mpm  {Invalid};
+    QMap<QString, QVariantMap> configMap;
 
     static void resetSignalNumber();
 

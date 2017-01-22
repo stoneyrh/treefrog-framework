@@ -1,4 +1,4 @@
-/* Copyright (c) 2014-2015, AOYAMA Kazuharu
+/* Copyright (c) 2014-2017, AOYAMA Kazuharu
  * All rights reserved.
  *
  * This software may be used and distributed according to the terms of
@@ -49,7 +49,7 @@ void TSendmailMailer::sendLater(const TMailMessage &message)
     T_TRACEFUNC("");
 
     mailMessage = message;
-    QTimer::singleShot(0, this, SLOT(sendAndDeleteLater()));
+    QTimer::singleShot(1, this, SLOT(sendAndDeleteLater()));
 }
 
 
