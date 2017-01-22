@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2015, AOYAMA Kazuharu
+/* Copyright (c) 2010-2017, AOYAMA Kazuharu
  * All rights reserved.
  *
  * This software may be used and distributed according to the terms of
@@ -342,7 +342,9 @@ QVariantMap THttpRequest::formItems(const QString &key) const
 void THttpRequest::parseBody(const QByteArray &body, const THttpRequestHeader &header)
 {
     switch (method()) {
-    case Tf::Post: {
+    case Tf::Post:
+    case Tf::Put:
+    case Tf::Patch: {
         QString ctype = QString::fromLatin1(header.contentType().trimmed());
         if (ctype.startsWith("multipart/form-data", Qt::CaseInsensitive)) {
             // multipart/form-data
@@ -376,7 +378,7 @@ void THttpRequest::parseBody(const QByteArray &body, const THttpRequestHeader &h
                         QString key = THttpUtility::fromUrlEncoding(nameval.value(0));
                         QString val = THttpUtility::fromUrlEncoding(nameval.value(1));
                         d->formItems.insertMulti(key, val);
-                        tSystemDebug("POST Hash << %s : %s", qPrintable(key), qPrintable(val));
+                        tSystemDebug("x-www-form-urlencoded << %s : %s", qPrintable(key), qPrintable(val));
                     }
                 }
             }

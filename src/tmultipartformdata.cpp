@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2015, AOYAMA Kazuharu
+/* Copyright (c) 2010-2017, AOYAMA Kazuharu
  * All rights reserved.
  *
  * This software may be used and distributed according to the terms of
@@ -30,6 +30,15 @@ const QFile::Permissions TMimeEntity::DefaultPermissions = TMultipartFormData::D
 TMimeHeader::TMimeHeader(const TMimeHeader &other)
     : headers(other.headers)
 { }
+
+/*!
+  Assignment operator.
+ */
+TMimeHeader &TMimeHeader::operator=(const TMimeHeader &other)
+{
+    headers = other.headers;
+    return *this;
+}
 
 /*!
   Returns the value of the header \a headerName.
@@ -179,16 +188,25 @@ QMap<QByteArray, QByteArray> TMimeHeader::parseHeaderParameter(const QByteArray 
   Copy constructor.
 */
 TMimeEntity::TMimeEntity(const TMimeEntity &other)
-    : QPair<TMimeHeader, QString>(other.first, other.second)
+    : entity(other.entity)
 { }
+
+/*!
+  Assignment operator.
+ */
+TMimeEntity &TMimeEntity::operator=(const TMimeEntity &other)
+{
+    entity = other.entity;
+    return *this;
+}
 
 /*!
   Constructor with the header \a header and the body \a body.
 */
 TMimeEntity::TMimeEntity(const TMimeHeader &header, const QString &body)
 {
-    first = header;
-    second = body;
+    entity.first = header;
+    entity.second = body;
 }
 
 /*!
@@ -205,7 +223,7 @@ QString TMimeEntity::contentType() const
 */
 qint64 TMimeEntity::fileSize() const
 {
-    QFileInfo fi(second);
+    QFileInfo fi(entity.second);
     if (!fi.exists()) {
         return -1;
     }
@@ -257,7 +275,7 @@ bool TMimeEntity::renameUploadedFile(const QString &newName, bool overwrite, QFi
 QString TMimeEntity::uploadedFilePath() const
 {
     // check original filename
-    return (header().isEmpty() || header().contentDispositionParameter("filename").isEmpty()) ? QString() : second;
+    return (header().isEmpty() || header().contentDispositionParameter("filename").isEmpty()) ? QString() : entity.second;
 }
 
 
