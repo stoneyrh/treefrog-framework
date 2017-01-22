@@ -173,7 +173,8 @@ bool TAccessValidator::validate(const TAbstractUser *user) const
         for (const auto &rule : accessRules) {
             if (rule.action == controller->activeAction()
                 && ((rule.type == AccessRule::User && rule.key == user->identityKey())
-                    || (!user->groupKey().isEmpty() && rule.key == user->groupKey()))) {
+                    || (!user->groupKey().isEmpty() && rule.key == user->groupKey())
+                    || rule.type == AccessRule::UnauthenticatedUser)) {
                 ret = rule.allow;
                 break;
             }
