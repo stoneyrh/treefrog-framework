@@ -80,7 +80,9 @@ Q_GLOBAL_STATIC(AttributeMap, attributeMap)
 
 TAppSettings::TAppSettings(const QString &path)
     : appIniSettings(new QSettings(path, QSettings::IniFormat))
-{ }
+{
+    appIniSettings->setIniCodec("UTF-8");
+}
 
 
 QVariant TAppSettings::value(Tf::AppAttribute attr, const QVariant &defaultValue) const
