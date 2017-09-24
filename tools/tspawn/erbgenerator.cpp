@@ -17,14 +17,14 @@
     "<%#include \"%1.h\" %>\n"                                          \
     "<html>\n"                                                          \
     "<head>\n"                                                          \
-    "  <meta http-equiv=\"content-type\" content=\"text/html;charset=UTF-8\" />\n" \
+    "  <meta charset=\"UTF-8\">\n"                                      \
     "  <title><%= controller()->name() + \": \" + controller()->activeAction() %></title>\n" \
     "</head>\n"                                                         \
     "<body>\n"                                                          \
     "\n"                                                                \
     "<h1><%= tr(\"Listing %2\") %></h1>\n"                                             \
     "\n"                                                                \
-    "<%== linkTo(tr(\"New entry\"), urla(\"create\")) %><br />\n"           \
+    "<%== linkTo(tr(\"Create a new %2\"), urla(\"create\")) %><br />\n"     \
     "<br />\n"                                                          \
     "<table border=\"1\" cellpadding=\"5\" style=\"border: 1px #d0d0d0 solid; border-collapse: collapse;\">\n" \
     "  <tr>\n"                                                          \
@@ -52,7 +52,7 @@
     "<% tfetch(%2, %3); %>\n"                                           \
     "<html>\n"                                                          \
     "<head>\n"                                                          \
-    "  <meta http-equiv=\"content-type\" content=\"text/html;charset=UTF-8\" />\n" \
+    "  <meta charset=\"UTF-8\">\n"                                      \
     "  <title><%= controller()->name() + \": \" + controller()->activeAction() %></title>\n" \
     "</head>\n"                                                         \
     "<body>\n"                                                          \
@@ -75,7 +75,7 @@
     "<% tfetch(QVariantMap, %2); %>\n"                                  \
     "<html>\n"                                                          \
     "<head>\n"                                                          \
-    "  <meta http-equiv=\"content-type\" content=\"text/html;charset=UTF-8\" />\n" \
+    "  <meta charset=\"UTF-8\">\n"                                      \
     "  <title><%= controller()->name() + \": \" + controller()->activeAction() %></title>\n" \
     "</head>\n"                                                         \
     "<body>\n"                                                          \
@@ -102,7 +102,7 @@
     "<% tfetch(QVariantMap, %2); %>\n"                                  \
     "<html>\n"                                                          \
     "<head>\n"                                                          \
-    "  <meta http-equiv=\"content-type\" content=\"text/html;charset=UTF-8\" />\n" \
+    "  <meta charset=\"UTF-8\">\n"                                      \
     "  <title><%= controller()->name() + \": \" + controller()->activeAction() %></title>\n" \
     "</head>\n"                                                         \
     "<body>\n"                                                          \
@@ -114,7 +114,7 @@
     "<%== formTag(urla(\"save\", %2[\"%4\"]), Tf::Post) %>\n"           \
     "%6"                                                                \
     "  <p>\n"                                                           \
-    "    <input type=\"submit\" value=\"<%= tr(\"Update\") %>\" />\n"                  \
+    "    <input type=\"submit\" value=\"<%= tr(\"Save\") %>\" />\n"                    \
     "  </p>\n"                                                          \
     "</form>\n"                                                         \
     "\n"                                                                \

@@ -48,6 +48,7 @@ enum CommandOption {
     WindowsServiceMode,
     SendSignal,
     AutoReload,
+    Port,
 };
 
 
@@ -120,6 +121,7 @@ public:
         insert("-w", WindowsServiceMode);
         insert("-k", SendSignal);
         insert("-r", AutoReload);
+        insert("-p", Port);
     }
 };
 Q_GLOBAL_STATIC(OptionHash, options)
@@ -128,11 +130,12 @@ Q_GLOBAL_STATIC(OptionHash, options)
 static void usage()
 {
     char text[] =
-        "Usage: %1 [-d] [-e environment] [-r] [application-directory]\n" \
+        "Usage: %1 [-d] [-p port] [-e environment] [-r] [application-directory]\n" \
         "Usage: %1 [-k stop|abort|restart|status] [application-directory]\n" \
         "%2"                                                            \
         "Options:\n"                                                    \
         "  -d              : run as a daemon process\n"                 \
+        "  -p port         : run server on specified port\n"            \
         "  -e environment  : specify an environment of the database settings\n" \
         "  -k              : send signal to a manager process\n"        \
         "%4"                                                            \
@@ -423,6 +426,7 @@ int managerMain(int argc, char *argv[])
     bool daemonMode = false;
     bool autoReloadMode = false;
     QString signalCmd;
+    quint16 listenPort = 0;
 
     QStringList args = QCoreApplication::arguments();
     args.removeFirst();
@@ -465,6 +469,14 @@ int managerMain(int argc, char *argv[])
             autoReloadMode = true;
             break;
 
+        case Port:
+            if (!i.hasNext()) {
+                fprintf(stderr, "Missing port number\n");
+                return 1;
+            }
+            listenPort = i.next().toInt();
+            break;
+
         default:
             // do nothing
             break;
@@ -503,18 +515,27 @@ int managerMain(int argc, char *argv[])
     }
 
     // Check a port number
-    quint16 listenPort = 0;
-    QString svrname = Tf::appSettings()->value(Tf::ListenPort).toString();
-    if (svrname.startsWith("unix:", Qt::CaseInsensitive)) {
-        svrname.remove(0, 5);
-    } else {
-        int port = svrname.toInt();
-        if (port <= 0 || port > USHRT_MAX) {
-            tSystemError("Invalid port number: %d", port);
-            return 1;
+    QString svrname;
+    if (listenPort <= 0) {
+        svrname = Tf::appSettings()->value(Tf::ListenPort).toString();
+
+        if (svrname.startsWith("unix:", Qt::CaseInsensitive)) {
+            svrname.remove(0, 5);
+        } else {
+            int port = svrname.toInt();
+            if (port <= 0 || port > USHRT_MAX) {
+                tSystemError("Invalid port number: %d", port);
+                return 1;
+            }
+            listenPort = port;
+            svrname.clear();
         }
-        listenPort = port;
-        svrname.clear();
+    }
+
+    // Listen address
+    QString listenAddress = Tf::appSettings()->value(Tf::ListenAddress).toString();
+    if (listenAddress.isEmpty()) {
+        listenAddress = "0.0.0.0";
     }
 
     // start daemon process
@@ -530,15 +551,17 @@ int managerMain(int argc, char *argv[])
     QFile pidfile;
 
     for (;;) {
-        ServerManager *manager = 0;
+        ServerManager *manager = nullptr;
         switch ( app.multiProcessingModule() ) {
         case TWebApplication::Thread:  // FALL THROUGH
         case TWebApplication::Hybrid: {
-            int num = 1;
-            if (!autoReloadMode) {
-                num = qMax(app.maxNumberOfAppServers(), 1);
+            int num = app.maxNumberOfAppServers();
+            if (autoReloadMode && num > 1) {
+                num = 1;
+                tSystemWarn("Fix the max number of application servers to one in auto-reload mode.");
+            } else {
+                tSystemDebug("Max number of app servers: %d", num);
             }
-            tSystemDebug("Max number of app servers: %d", num);
             manager = new ServerManager(num, num, 0, &app);
             break; }
 
@@ -554,7 +577,7 @@ int managerMain(int argc, char *argv[])
         bool started;
         if (listenPort > 0) {
             // TCP/IP
-            started = manager->start(QHostAddress::Any, listenPort);
+            started = manager->start(QHostAddress(listenAddress), listenPort);
         } else {
             // UNIX domain
             started = manager->start(svrname);
@@ -611,6 +634,7 @@ int managerMain(int argc, char *argv[])
 
 } // namespace TreeFrog
 
+
 int main(int argc, char *argv[])
 {
 #ifdef Q_OS_WIN
@@ -618,9 +642,8 @@ int main(int argc, char *argv[])
         if (strcmp(argv[i], "-w") == 0) {
             // Windows service mode
             SERVICE_TABLE_ENTRY entry[] = { { (LPTSTR)TEXT(""), (LPSERVICE_MAIN_FUNCTION)TreeFrog::winServiceMain },
-                                            { NULL, NULL } };
-            if (!StartServiceCtrlDispatcher(entry))
-                return 1;
+                                            { nullptr, nullptr } };
+            StartServiceCtrlDispatcher(entry);
             return 0;
         }
     }

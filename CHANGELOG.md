@@ -1,4 +1,40 @@
 # ChangeLog
+## 1.19.0
+ - Added TSqlDriverExtension class for upsert statement.
+ - Added QString arguments to sort columns function.
+ - Added linkTo() functions that has various arguments.
+ - Added itemCountOfCurrentPage() into TPaginator class.
+ - Added routes.cfg settings by which redirecting to URL path.
+ - Modified to send a message of empty body when the status code is 304.
+ - Fix a bug of Windows service stop-request.
+ - Fix a bug of routing when any controller is not found.
+ - Fix a bug that urlq() function doesn't keep arguments.
+ - Fix a bug of printing help messages.
+ - Fix compilation error on FreeBSD.
+
+## 1.18.0
+ - Implemented a session store for MongoDB.
+ - Fix a bug of file session store.
+ - Fix a bug of generator of controllers.
+ - Fix a bug of parsing arguments when running as Windows service.
+ - Fix leak of db connections.
+
+## 1.17.0
+ - Fix a bug of comparisn logic of If-Modified-Since header.
+ - Fix a bug of URL path traversal.
+ - Modified to add view files into the project when tmake was executed.
+ - Added logics to invoke a controller constructor by QMetaObject::newInstance()
+   function.
+ - Added logic of routing to a static file.
+ - Added a class to process in background, TBackgroundProcess.
+
+## 1.16.0
+ - Added a config for listening IP address.
+ - Added a config for executing SQL statements on post-open.
+ - Added a function for multi-fields 'order by', tfGetModelListByCriteria().
+ - Fix a bug of selecting aarge number of rows in sqlite
+ - Modified the generator to generate better code.
+ - Added pages for GigHub Pages, English and Japanese.
 
 ## 1.15.0
  - Added setValidationError(2) function to TFormValidator class

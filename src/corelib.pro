@@ -6,6 +6,8 @@ QT      += sql network xml
 DEFINES += TF_MAKEDLL
 INCLUDEPATH += ../include
 DEPENDPATH  += ../include
+MOC_DIR = .obj/
+OBJECTS_DIR = .obj/
 windows:CONFIG(debug, debug|release) {
   TARGET = $$join(TARGET,,,d)
 }
@@ -29,6 +31,9 @@ windows {
   LIBS += -lws2_32 -lpsapi
   header.files = $$HEADER_FILES $$HEADER_CLASSES
   header.files += $$MONGODB_FILES $$MONGODB_CLASSES
+  win32-msvc* {
+    QMAKE_CXXFLAGS += /source-charset:utf-8 /wd 4819 /wd 4661
+  }
 
   isEmpty(header.path) {
     header.path = C:/TreeFrog/$${VERSION}/include
@@ -97,6 +102,8 @@ HEADERS += tactionview.h
 SOURCES += tactionview.cpp
 HEADERS += tactionmailer.h
 SOURCES += tactionmailer.cpp
+HEADERS += tsqldatabase.h
+SOURCES += tsqldatabase.cpp
 HEADERS += tsqldatabasepool.h
 SOURCES += tsqldatabasepool.cpp
 HEADERS += tsqlobject.h
@@ -111,6 +118,10 @@ HEADERS += tsqlqueryormapperiterator.h
 SOURCES += tsqlqueryormapperiterator.cpp
 HEADERS += tsqltransaction.h
 SOURCES += tsqltransaction.cpp
+HEADERS += tsqldriverextension.h
+SOURCES += tsqldriverextension.cpp
+HEADERS += tsqldriverextensionfactory.h
+SOURCES += tsqldriverextensionfactory.cpp
 HEADERS += tcriteria.h
 SOURCES += tcriteria.cpp
 HEADERS += tcriteriaconverter.h
@@ -153,6 +164,8 @@ HEADERS += tsessionstorefactory.h
 SOURCES += tsessionstorefactory.cpp
 HEADERS += tsessionsqlobjectstore.h
 SOURCES += tsessionsqlobjectstore.cpp
+HEADERS += tsessionmongostore.h
+SOURCES += tsessionmongostore.cpp
 HEADERS += tsessioncookiestore.h
 SOURCES += tsessioncookiestore.cpp
 HEADERS += tsessionfilestore.h
@@ -275,6 +288,10 @@ HEADERS += tdatabasecontextthread.h
 SOURCES += tdatabasecontextthread.cpp
 HEADERS += tdatabasecontextmainthread.h
 SOURCES += tdatabasecontextmainthread.cpp
+HEADERS += tbackgroundprocess.h
+SOURCES += tbackgroundprocess.cpp
+HEADERS += tbackgroundprocesshandler.h
+SOURCES += tbackgroundprocesshandler.cpp
 HEADERS += tdebug.h
 SOURCES += tdebug.cpp
 
@@ -286,6 +303,7 @@ HEADERS += \
            tdispatcher.h \
            tloggerplugin.h \
            tsessionobject.h \
+           tsessionmongoobject.h \
            tsessionstoreplugin.h \
            tjavascriptobject.h \
            tsqlormapper.h \
@@ -323,6 +341,10 @@ linux-* {
 }
 macx {
   SOURCES += tprocessinfo_macx.cpp
+}
+freebsd {
+  SOURCES += tprocessinfo_freebsd.cpp
+  LIBS += -lutil -lprocstat
 }
 
 # Qt5

@@ -5,9 +5,12 @@
 #include <cstdio>
 #include <cerrno>
 #ifdef Q_OS_WIN
+# include <windows.h>
 # include <io.h>
+# include <winbase.h>
 #else
 # include <unistd.h>
+# include <fcntl.h>
 # include <sys/file.h>
 # include <sys/socket.h>
 #endif
@@ -99,6 +102,28 @@ static inline int tf_flock(int fd, int op)
     return 0;
 #else
     TF_EINTR_LOOP(::flock(fd, op));
+#endif
+}
+
+// advisory lock. exclusive:true=exclusive lock, false=shared lock
+static inline int tf_lockfile(int fd, bool exclusive, bool blocking)
+{
+#ifdef Q_OS_WIN
+    auto handle = reinterpret_cast<HANDLE>(_get_osfhandle(fd));
+    DWORD dwFlags = (exclusive) ? LOCKFILE_EXCLUSIVE_LOCK : 0;
+    dwFlags |= (blocking) ? 0 : LOCKFILE_FAIL_IMMEDIATELY;
+    OVERLAPPED ov;
+    memset(&ov, 0, sizeof(OVERLAPPED));
+    BOOL res = LockFileEx(handle, dwFlags, 0, 0, 0, &ov);
+    return (res) ? 0 : -1;
+#else
+    struct flock lck;
+
+    memset(&lck, 0, sizeof(struct flock));
+    lck.l_type = (exclusive) ? F_WRLCK : F_RDLCK;
+    lck.l_whence = SEEK_SET;
+    auto cmd = (blocking) ? F_SETLKW : F_SETLK;
+    TF_EINTR_LOOP(::fcntl(fd, cmd, &lck));
 #endif
 }
 

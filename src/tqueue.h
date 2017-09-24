@@ -43,7 +43,7 @@ public:
 template <class T>
 inline TQueue<T>::TQueue()
 {
-    auto *dummy = new Node(T());  // dummy node
+    auto dummy = new Node(T()); // dummy node
     queHead.store(dummy);
     queTail.store(dummy);
 }
@@ -52,8 +52,8 @@ inline TQueue<T>::TQueue()
 template <class T>
 inline void TQueue<T>::enqueue(const T &val)
 {
-   auto *newnode = new Node(val);
-   for (;;) {
+    auto *newnode = new Node(val);
+    for (;;) {
         Node *tail = queTail.load();
         Node *next = tail->next.load();
 
@@ -62,7 +62,7 @@ inline void TQueue<T>::enqueue(const T &val)
         }
 
         if (next) {
-            queTail.compareExchangeStrong(tail, next);  // update queTail
+            queTail.compareExchange(tail, next);  // update queTail
             continue;
         }
 
@@ -71,7 +71,7 @@ inline void TQueue<T>::enqueue(const T &val)
             queTail.compareExchangeStrong(tail, newnode);
             break;
         }
-   }
+    }
 }
 
 
@@ -89,19 +89,19 @@ inline bool TQueue<T>::dequeue(T &val)
         }
 
         if (head == tail) {
-            if (!next) {
+            if (next) {
+                queTail.compareExchange(tail, next);  // update queTail
+            } else {
                 // no item
                 break;
             }
-            queTail.compareExchangeStrong(tail, next);  // update queTail
-
         } else {
-            if (!next) {
+            if (Q_UNLIKELY(!next)) {
                 continue;
             }
 
-            val = next->value;
             if (queHead.compareExchange(head, next)) {
+                val = next->value;
                 head->deleteLater();  // gc
                 counter--;
                 break;

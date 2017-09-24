@@ -1,22 +1,46 @@
 language: cpp
-sudo: required
-dist: trusty
+
+matrix:
+  include:
+    - os: linux
+      dist: trusty
+      sudo: required
+    - os: osx
+      osx_image: xcode8.3
+      sudo: required
 
 env:
   global:
     - CI_WORK=`pwd`
 
+addons:
+  apt:
+    packages:
+      - qtbase5-dev
+      - qt5-default
+      - qt5-qmake
+      - qttools5-dev-tools
+      - qtdeclarative5-dev
+      - qtdeclarative5-dev-tools
+      - libqt5sql5
+      - libqt5sql5-sqlite
+      - libsqlite3-dev
+      - gdb
+      - ruby
+      - ruby-dev
+      - ruby-all-dev
+      - gem
+
 before_install:
-  - sudo apt-get update
-  - sudo apt-get install -y qtbase5-dev libsqlite3-dev qt5-default qt5-qmake qttools5-dev-tools qtdeclarative5-dev qtdeclarative5-dev-tools
-  - sudo apt-get install -y gdb
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt remove bundler; sudo gem update; cd $CI_WORK/docs; bundle install; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install qt; brew link --force qt; fi
 
 install:
-  - g++ --version
+  - cd $CI_WORK
   - qmake -v
-  - ./configure --prefix=$HOME/local --bindir=/usr/bin
+  - ./configure --prefix=/usr/local
   - make -j4 -C src
-  - make -C src install
+  - sudo make -C src install
   - make -j4 -C tools
   - sudo make -C tools install
   - treefrog -v
@@ -30,5 +54,9 @@ before_script:
 script:
   - cd $CI_WORK
   - ./src/test/testall.sh
-  - cd tools/tmake/test
+  - cd $CI_WORK/tools/tmake/test
   - ./tmaketest
+  - cd $CI_WORK/tools/test
+  - ./releasetest/releasetest
+  - cd $CI_WORK/docs
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then bundle exec jekyll build; fi

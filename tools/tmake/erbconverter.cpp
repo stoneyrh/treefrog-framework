@@ -23,7 +23,6 @@
     "public:\n"                                                 \
     "  Q_INVOKABLE\n"                                           \
     "  %1() : TActionView() { }\n"                              \
-    "  %1(const %1 &) : TActionView() { }\n"                    \
     "  QString toString();\n"                                   \
     "};\n"                                                      \
     "\n"                                                        \
@@ -34,8 +33,7 @@
     "  return responsebody;\n"                                  \
     "}\n"                                                       \
     "\n"                                                        \
-    "Q_DECLARE_METATYPE(%1)\n"                                  \
-    "T_REGISTER_VIEW(%1)\n"                                     \
+    "T_DEFINE_VIEW(%1)\n"                                       \
     "\n"                                                        \
     "#include \"%1.moc\"\n"
 

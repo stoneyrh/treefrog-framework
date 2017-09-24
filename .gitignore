@@ -9,6 +9,7 @@ log/
 src/trash/
 tools/tspawn/defaults/
 src/test/sharedmemorylogstream/log/
+Gemfile.lock
 
 # Linux
 *.o
@@ -17,6 +18,7 @@ src/test/sharedmemorylogstream/log/
 *.so.*
 *.pro.user
 3rdparty/mongo-c-driver/src/*.os
+docs/_site/
 
 # macOS
 *.dylib

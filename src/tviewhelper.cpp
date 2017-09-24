@@ -40,7 +40,7 @@ QString TViewHelper::linkTo(const QString &text, const QUrl &url, Tf::HttpMethod
 QString TViewHelper::linkTo(const QString &text, const QUrl &url, Tf::HttpMethod method, const QString &jsCondition, const THtmlAttribute &attributes) const
 {
     QString string("<a href=\"");
-    string.append(url.toString()).append("\"");
+    string.append(url.toString(QUrl::FullyEncoded)).append("\"");
 
     if (method == Tf::Post) {
         string.append(" onclick=\"");
@@ -469,8 +469,10 @@ QString TViewHelper::imageTag(const QString &src, bool withTimestamp,
         attr.prepend("alt", "");  // output 'alt' always
     }
 
-    if (!size.isEmpty()) {
+    if (size.height() > 0) {
         attr.prepend("height", QString::number(size.height()));
+    }
+    if (size.width() > 0) {
         attr.prepend("width", QString::number(size.width()));
     }
 
@@ -504,8 +506,10 @@ QString TViewHelper::inlineImageTag(const QByteArray &data, const QString &media
         attr.prepend("alt", "");  // output 'alt' always
     }
 
-    if (!size.isEmpty()) {
+    if (size.height() > 0) {
         attr.prepend("height", QString::number(size.height()));
+    }
+    if (size.width() > 0) {
         attr.prepend("width", QString::number(size.width()));
     }
 

@@ -8,11 +8,15 @@
 #include <QFile>
 #include <QDir>
 #include <QDataStream>
+#include <QReadWriteLock>
 #include <TWebApplication>
 #include "tsessionfilestore.h"
 #include "tsystemglobal.h"
+#include "tfcore.h"
 
 #define SESSION_DIR_NAME "session"
+
+static QReadWriteLock rwLock(QReadWriteLock::Recursive);  // Global read-write lock
 
 /*!
   \class TSessionFileStore
@@ -42,10 +46,21 @@ bool TSessionFileStore::store(TSession &session)
 #endif
 
     bool res = false;
+    QWriteLocker locker(&rwLock);  // lock for threads
     QFile file(sessionDirPath() + session.id());
-    if (file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+
+    if (file.open(QIODevice::ReadWrite)) {
+        auto reslock = tf_lockfile(file.handle(), true, true);  // blocking flock for processes
+        int err = errno;
+        if (reslock < 0) {
+            tSystemWarn("flock error  errno:%d", err);
+        }
+
+        file.resize(0); // truncate
         QDataStream ds(&file);
         ds << *static_cast<const QVariantMap *>(&session);
+        file.close();
+
         res = (ds.status() == QDataStream::Ok);
         if (!res) {
             tSystemError("Failed to store session. Must set objects that can be serialized.");
@@ -61,12 +76,20 @@ TSession TSessionFileStore::find(const QByteArray &id)
     QDateTime modified = QDateTime::currentDateTime().addSecs(-lifeTimeSecs());
 
     if (fi.exists() && fi.lastModified() >= modified) {
+        QReadLocker locker(&rwLock);  // lock for threads
         QFile file(fi.filePath());
 
         if (file.open(QIODevice::ReadOnly)) {
+            auto reslock = tf_lockfile(file.handle(), false, true);  // blocking flock for processes
+            int err = errno;
+            if (reslock < 0) {
+                tSystemWarn("flock error  errno:%d", err);
+            }
+
             QDataStream ds(&file);
             TSession result(id);
             ds >> *static_cast<QVariantMap *>(&result);
+            file.close();
 
             if (ds.status() == QDataStream::Ok) {
                 return result;

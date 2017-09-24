@@ -1,9 +1,9 @@
 #ifndef TGLOBAL_H
 #define TGLOBAL_H
 
-#define TF_VERSION_STR "1.15.0"
-#define TF_VERSION_NUMBER 0x011500
-#define TF_SRC_REVISION 1311
+#define TF_VERSION_STR "1.19.0"
+#define TF_VERSION_NUMBER 0x011900
+#define TF_SRC_REVISION 1584
 
 #include <QtGlobal>
 #include <QMetaType>
@@ -12,6 +12,7 @@
     typedef TYPE NAME;                   \
     Q_DECLARE_METATYPE(NAME)
 
+// Deprecated
 #define T_REGISTER_CONTROLLER(TYPE) T_REGISTER_METATYPE(TYPE)
 #define T_REGISTER_VIEW(TYPE) T_REGISTER_METATYPE(TYPE)
 #define T_REGISTER_METATYPE(TYPE)                               \
@@ -20,8 +21,31 @@
     public:                                                     \
         Static##TYPE##Instance()                                \
         {                                                       \
-            qRegisterMetaType<TYPE>(); /*TODO: delete this line */ \
-            Tf::metaObjects()->insert(#TYPE, &TYPE::staticMetaObject); \
+            qRegisterMetaType<TYPE>();                          \
+        }                                                       \
+    };                                                          \
+    static Static##TYPE##Instance _static##TYPE##Instance;
+
+#define T_DEFINE_CONTROLLER(TYPE) T_DEFINE_VIEW(TYPE)
+#define T_DEFINE_VIEW(TYPE)                                     \
+    class Static##TYPE##Definition                              \
+    {                                                           \
+    public:                                                     \
+        Static##TYPE##Definition()                              \
+        {                                                       \
+            Tf::objectFactories()->insert(QByteArray(#TYPE).toLower(), [](){ return new TYPE(); }); \
+            Tf::metaObjects()->insert(QByteArray(#TYPE).toLower(), &TYPE::staticMetaObject); \
+        }                                                       \
+    };                                                          \
+    static Static##TYPE##Definition _static##TYPE##Definition;
+
+#define T_REGISTER_STREAM_OPERATORS(TYPE)                       \
+    class Static##TYPE##Instance                                \
+    {                                                           \
+    public:                                                     \
+        Static##TYPE##Instance()                                \
+        {                                                       \
+            qRegisterMetaTypeStreamOperators<TYPE>(#TYPE);      \
         }                                                       \
     };                                                          \
     static Static##TYPE##Instance _static##TYPE##Instance;
@@ -142,6 +166,7 @@
 #include <TWebApplication>
 #include "tfexception.h"
 #include <cstdint>
+#include <functional>
 
 class TAppSettings;
 class TActionContext;
@@ -152,6 +177,7 @@ namespace Tf
 {
     T_CORE_EXPORT TWebApplication *app();
     T_CORE_EXPORT TAppSettings *appSettings();
+    T_CORE_EXPORT const QVariantMap &conf(const QString &configName);
     T_CORE_EXPORT void msleep(unsigned long msecs);
 
     // Xorshift random number generator
@@ -167,7 +193,8 @@ namespace Tf
     T_CORE_EXPORT TActionContext *currentContext();
     T_CORE_EXPORT TDatabaseContext *currentDatabaseContext();
     T_CORE_EXPORT QSqlDatabase &currentSqlDatabase(int id);
-    T_CORE_EXPORT QMap<QString, const QMetaObject*> *metaObjects();
+    T_CORE_EXPORT QMap<QByteArray, const QMetaObject*> *metaObjects();
+    T_CORE_EXPORT QMap<QByteArray, std::function<QObject*()>> *objectFactories();
 }
 
 #endif // TGLOBAL_H

@@ -1,7 +1,7 @@
 @echo OFF
 @setlocal
 
-set VERSION=1.15.0
+set VERSION=1.19.0
 set TFDIR=C:\TreeFrog\%VERSION%
 
 :parse_loop
@@ -130,11 +130,11 @@ if ERRORLEVEL 1 (
 cd ..\..
 
 cd src
-if exist Makefile ( %MAKE% -k distclean >nul 2>&1 )
+if exist Makefile ( %MAKE% -k clean >nul 2>&1 )
 qmake %OPT% target.path='%TFDIR%/bin' header.path='%TFDIR%/include' %USE_GUI%
 cd ..
 cd tools
-if exist Makefile ( %MAKE% -k distclean >nul 2>&1 )
+if exist Makefile ( %MAKE% -k clean >nul 2>&1 )
 qmake -recursive %OPT% target.path='%TFDIR%/bin' header.path='%TFDIR%/include' datadir='%TFDIR%'
 %MAKE% qmake
 cd ..

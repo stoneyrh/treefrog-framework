@@ -39,6 +39,15 @@ TAppSettings *Tf::appSettings()
 }
 
 /*!
+  Returns the map associated with config file \a configName in 'conf'
+  directory.
+*/
+const QVariantMap &Tf::conf(const QString &configName)
+{
+    return Tf::app()->getConfig(configName);
+}
+
+/*!
   Causes the current thread to sleep for \a msecs milliseconds.
 */
 void Tf::msleep(unsigned long msecs)
@@ -109,22 +118,24 @@ quint32 Tf::randXor128()
 
 static std::random_device randev;
 static std::mt19937     mt(randev());
+static QMutex           mtmtx;
 static std::mt19937_64  mt64(randev());
+static QMutex           mt64mtx;
 
 uint32_t Tf::rand32_r()
 {
-    randMutex.lock();
+    mtmtx.lock();
     uint32_t ret = mt();
-    randMutex.unlock();
+    mtmtx.unlock();
     return ret;
 }
 
 
 uint64_t Tf::rand64_r()
 {
-    randMutex.lock();
+    mt64mtx.lock();
     uint64_t ret = mt64();
-    randMutex.unlock();
+    mt64mtx.unlock();
     return ret;
 }
 
@@ -133,10 +144,10 @@ uint64_t Tf::rand64_r()
 */
 uint64_t Tf::random(uint64_t min, uint64_t max)
 {
-    randMutex.lock();
     std::uniform_int_distribution<uint64_t> uniform(min, max);
+    mt64mtx.lock();
     uint64_t ret = uniform(mt64);
-    randMutex.unlock();
+    mt64mtx.unlock();
     return ret;
 }
 
@@ -221,10 +232,16 @@ QSqlDatabase &Tf::currentSqlDatabase(int id)
 }
 
 
-QMap<QString, const QMetaObject*> *Tf::metaObjects()
+QMap<QByteArray, const QMetaObject*> *Tf::metaObjects()
 {
-    static QMap<QString, const QMetaObject*> metaObjectMap;
+    static QMap<QByteArray, const QMetaObject*> metaObjectMap;
     return &metaObjectMap;
+}
+
+QMap<QByteArray, std::function<QObject*()>> *Tf::objectFactories()
+{
+    static QMap<QByteArray, std::function<QObject*()>> objectFactoryMap;
+    return &objectFactoryMap;
 }
 
 /*!

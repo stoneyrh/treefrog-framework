@@ -46,10 +46,10 @@
     "\n"                                                 \
     "    T_%1_EXTEND_FIELDS\n"                           \
     "\n"                                                 \
-    "    bool create() { return TAbstractModel::create(); }\n" \
-    "    bool update() { return TAbstractModel::update(); }\n" \
-    "    bool save()   { return TAbstractModel::save(); }\n"   \
-    "    bool remove() { return TAbstractModel::remove(); }\n" \
+    "    bool create() override { return TAbstractModel::create(); }\n" \
+    "    bool update() override { return TAbstractModel::update(); }\n" \
+    "    bool save()   override { return TAbstractModel::save(); }\n"   \
+    "    bool remove() override { return TAbstractModel::remove(); }\n" \
     "\n"                                                 \
     "    static %3 create(%5);\n"                        \
     "    static %3 create(const QVariantMap &values);\n" \
@@ -62,8 +62,10 @@
     "private:\n"                                         \
     "    QSharedDataPointer<%3Object> d;\n"              \
     "\n"                                                 \
-    "    TModelObject *modelData();\n"                   \
-    "    const TModelObject *modelData() const;\n"       \
+    "    TModelObject *modelData() override;\n"          \
+    "    const TModelObject *modelData() const override;\n" \
+    "    friend QDataStream &operator<<(QDataStream &ds, const %2 &model);\n" \
+    "    friend QDataStream &operator>>(QDataStream &ds, %2 &model);\n" \
     "};\n"                                               \
     "\n"                                                 \
     "Q_DECLARE_METATYPE(%3)\n"                           \
@@ -141,7 +143,25 @@
     "const TModelObject *%3::modelData() const\n"             \
     "{\n"                                                     \
     "    return d.data();\n"                                  \
-    "}\n"
+    "}\n"                                                     \
+    "\n"                                                      \
+    "QDataStream &operator<<(QDataStream &ds, const %2 &model)\n" \
+    "{\n"                                                     \
+    "    auto varmap = model.toVariantMap();\n"               \
+    "    ds << varmap;\n"                                     \
+    "    return ds;\n"                                        \
+    "}\n"                                                     \
+    "\n"                                                      \
+    "QDataStream &operator>>(QDataStream &ds, %2 &model)\n"   \
+    "{\n"                                                     \
+    "    QVariantMap varmap;\n"                               \
+    "    ds >> varmap;\n"                                     \
+    "    model.setProperties(varmap);\n"                      \
+    "    return ds;\n"                                        \
+    "}\n"                                                     \
+    "\n"                                                      \
+    "// Don't remove below this line\n"                       \
+    "T_REGISTER_STREAM_OPERATORS(%2)\n"
 
 #define USER_MODEL_HEADER_FILE_TEMPLATE                  \
     "#ifndef %1_H\n"                                     \
@@ -194,6 +214,8 @@
     "\n"                                                 \
     "    TModelObject *modelData();\n"                   \
     "    const TModelObject *modelData() const;\n"       \
+    "    friend QDataStream &operator<<(QDataStream &ds, const %2 &model);\n" \
+    "    friend QDataStream &operator>>(QDataStream &ds, %2 &model);\n" \
     "};\n"                                               \
     "\n"                                                 \
     "Q_DECLARE_METATYPE(%3)\n"                           \
@@ -302,7 +324,25 @@
     "const TModelObject *%2::modelData() const\n"             \
     "{\n"                                                     \
     "    return d.data();\n"                                  \
-    "}\n"
+    "}\n"                                                     \
+    "\n"                                                      \
+    "QDataStream &operator<<(QDataStream &ds, const %2 &model)\n" \
+    "{\n"                                                     \
+    "    auto varmap = model.toVariantMap();\n"               \
+    "    ds << varmap;\n"                                     \
+    "    return ds;\n"                                        \
+    "}\n"                                                     \
+    "\n"                                                      \
+    "QDataStream &operator>>(QDataStream &ds, %2 &model)\n"   \
+    "{\n"                                                     \
+    "    QVariantMap varmap;\n"                               \
+    "    ds >> varmap;\n"                                     \
+    "    model.setProperties(varmap);\n"                      \
+    "    return ds;\n"                                        \
+    "}\n"                                                     \
+    "\n"                                                      \
+    "// Don't remove below this line\n"                       \
+    "T_REGISTER_STREAM_OPERATORS(%2)"
 
 #define MODEL_IMPL_GETALLJSON                                 \
     "QJsonArray %1::getAllJson()\n"                           \

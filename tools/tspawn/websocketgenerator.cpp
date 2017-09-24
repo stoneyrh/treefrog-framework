@@ -18,23 +18,27 @@
     "\n"                                                                \
     "class T_CONTROLLER_EXPORT %2Endpoint : public ApplicationEndpoint\n" \
     "{\n"                                                               \
+    "    Q_OBJECT\n"                                                    \
     "public:\n"                                                         \
-    "    %2Endpoint() { }\n"                                            \
+    "    Q_INVOKABLE\n"                                                 \
+    "    %2Endpoint();\n"                                               \
     "    %2Endpoint(const %2Endpoint &other);\n"                        \
     "\n"                                                                \
     "protected:\n"                                                      \
-    "    bool onOpen(const TSession &httpSession);\n"                   \
-    "    void onClose(int closeCode);\n"                                \
-    "    void onTextReceived(const QString &text);\n"                   \
-    "    void onBinaryReceived(const QByteArray &binary);\n"            \
+    "    bool onOpen(const TSession &httpSession) override;\n"          \
+    "    void onClose(int closeCode) override;\n"                       \
+    "    void onTextReceived(const QString &text) override;\n"          \
+    "    void onBinaryReceived(const QByteArray &binary) override;\n"   \
     "};\n"                                                              \
-    "\n"                                                                \
-    "T_DECLARE_CONTROLLER(%2Endpoint, %3endpoint)\n"                    \
     "\n"                                                                \
     "#endif // %1ENDPOINT_H\n"
 
 #define ENDPOINT_IMPL_TEMPLATE                                          \
     "#include \"%1endpoint.h\"\n"                                       \
+    "\n"                                                                \
+    "%2Endpoint::%2Endpoint()\n"                                        \
+    "    : ApplicationEndpoint()\n"                                     \
+    "{ }\n"                                                             \
     "\n"                                                                \
     "%2Endpoint::%2Endpoint(const %2Endpoint &)\n"                      \
     "    : ApplicationEndpoint()\n"                                     \
@@ -57,7 +61,7 @@
     "{ }\n"                                                             \
     "\n\n"                                                              \
     "// Don't remove below this line\n"                                 \
-    "T_REGISTER_CONTROLLER(%1endpoint)\n"
+    "T_DEFINE_CONTROLLER(%2Endpoint)\n"
 
 
 WebSocketGenerator::WebSocketGenerator(const QString &n)
@@ -71,7 +75,7 @@ bool WebSocketGenerator::generate(const QString &dst) const
 {
     // Writes each files
     QDir dstDir(dst);
-    QString output = QString(ENDPOINT_HEADER_TEMPLATE).arg(name.toUpper()).arg(name).arg(name.toLower());
+    QString output = QString(ENDPOINT_HEADER_TEMPLATE).arg(name.toUpper()).arg(name);
     FileWriter(dstDir.filePath(name.toLower() + "endpoint.h")).write(output, false);
 
     output = QString(ENDPOINT_IMPL_TEMPLATE).arg(name.toLower()).arg(name);

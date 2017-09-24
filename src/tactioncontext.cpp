@@ -63,53 +63,54 @@ void TActionContext::execute(THttpRequest &request, int sid)
 
     try {
         httpReq = &request;
-        const THttpRequestHeader &hdr = httpReq->header();
+        const THttpRequestHeader &reqHeader = httpReq->header();
 
         // Access log
         accessLogger.setTimestamp(QDateTime::currentDateTime());
-        QByteArray firstLine = hdr.method() + ' ' + hdr.path();
-        firstLine += QString(" HTTP/%1.%2").arg(hdr.majorVersion()).arg(hdr.minorVersion()).toLatin1();
+        QByteArray firstLine = reqHeader.method() + ' ' + reqHeader.path();
+        firstLine += QString(" HTTP/%1.%2").arg(reqHeader.majorVersion()).arg(reqHeader.minorVersion()).toLatin1();
         accessLogger.setRequest(firstLine);
         accessLogger.setRemoteHost( (Tf::appSettings()->value(Tf::ListenPort).toUInt() > 0) ? clientAddress().toString().toLatin1() : QByteArray("(unix)") );
 
-        tSystemDebug("method : %s", hdr.method().data());
-        tSystemDebug("path : %s", hdr.path().data());
+        tSystemDebug("method : %s", reqHeader.method().data());
+        tSystemDebug("path : %s", reqHeader.path().data());
 
         // HTTP method
         Tf::HttpMethod method = httpReq->method();
-        QString path = THttpUtility::fromUrlEncoding(hdr.path().mid(0, hdr.path().indexOf('?')));
+        QString path = THttpUtility::fromUrlEncoding(reqHeader.path().mid(0, reqHeader.path().indexOf('?')));
 
         // Routing info exists?
         QStringList components = TUrlRoute::splitPath(path);
-        TRouting rt = TUrlRoute::instance().findRouting(method, components);
+        TRouting route = TUrlRoute::instance().findRouting(method, components);
 
-        tSystemDebug("Routing: controller:%s  action:%s", rt.controller.data(),
-                     rt.action.data());
+        tSystemDebug("Routing: controller:%s  action:%s", route.controller.data(),
+                     route.action.data());
 
-        if (rt.isEmpty()) {
+        if (! route.exists) {
             // Default URL routing
 
             if (Q_UNLIKELY(directViewRenderMode())) { // Direct view render mode?
                 // Direct view setting
-                rt.setRouting("directcontroller", "show", components);
+                route.setRouting("directcontroller", "show", components);
             } else {
                 QByteArray c = components.value(0).toLatin1().toLower();
                 if (Q_LIKELY(!c.isEmpty())) {
                     if (Q_LIKELY(!TActionController::disabledControllers().contains(c))) { // Can not call 'ApplicationController'
                         // Default action: "index"
                         QByteArray action = components.value(1, QLatin1String("index")).toLatin1();
-                        rt.setRouting(c + "controller", action, components.mid(2));
+                        route.setRouting(c + "controller", action, components.mid(2));
                     }
                 }
-                tSystemDebug("Active Controller : %s", rt.controller.data());
+                tSystemDebug("Active Controller : %s", route.controller.data());
             }
         }
 
         // Call controller method
-        TDispatcher<TActionController> ctlrDispatcher(rt.controller);
+        TDispatcher<TActionController> ctlrDispatcher(route.controller);
         currController = ctlrDispatcher.object();
         if (currController) {
-            currController->setActionName(rt.action);
+            currController->setActionName(route.action);
+            currController->setArguments(route.params);
             currController->setSocketId(sid);
 
             // Session
@@ -128,7 +129,7 @@ void TActionContext::execute(THttpRequest &request, int sid)
 
             // Verify authenticity token
             if (Tf::appSettings()->value(Tf::EnableCsrfProtectionModule, true).toBool()
-                && currController->csrfProtectionEnabled() && !currController->exceptionActionsOfCsrfProtection().contains(rt.action)) {
+                && currController->csrfProtectionEnabled() && !currController->exceptionActionsOfCsrfProtection().contains(route.action)) {
 
                 if (method == Tf::Post || method == Tf::Put || method == Tf::Patch || method == Tf::Delete) {
                     if (!currController->verifyRequest(*httpReq)) {
@@ -155,7 +156,7 @@ void TActionContext::execute(THttpRequest &request, int sid)
             if (Q_LIKELY(currController->preFilter())) {
 
                 // Dispathes
-                bool dispatched = ctlrDispatcher.invoke(rt.action, rt.params);
+                bool dispatched = ctlrDispatcher.invoke(route.action, route.params);
                 if (Q_LIKELY(dispatched)) {
                     autoRemoveFiles << currController->autoRemoveFiles;  // Adds auto-remove files
 
@@ -186,6 +187,8 @@ void TActionContext::execute(THttpRequest &request, int sid)
                             // Sets the path in the session cookie
                             QString cookiePath = Tf::appSettings()->value(Tf::SessionCookiePath).toString();
                             currController->addCookie(TSession::sessionName(), currController->session().id(), expire, cookiePath, QString(), false, true);
+                        } else {
+                            tSystemError("Failed to store a session");
                         }
                     }
 
@@ -252,20 +255,26 @@ void TActionContext::execute(THttpRequest &request, int sid)
 
         } else {
             accessLogger.setStatusCode( Tf::BadRequest );  // Set a default status code
+            if (route.controller.startsWith("/")) {
+                path = route.controller;
+            }
 
             if (Q_LIKELY(method == Tf::Get)) {  // GET Method
-                path.remove(0, 1);
-                QFile reqPath(Tf::app()->publicPath() + path);
+                QString canonicalPath = QUrl(".").resolved(QUrl(path)).toString().mid(1);
+                QFile reqPath(Tf::app()->publicPath() + canonicalPath);
                 QFileInfo fi(reqPath);
+                tSystemDebug("canonicalPath : %s", qPrintable(canonicalPath));
 
                 if (fi.isFile() && fi.isReadable()) {
                     // Check "If-Modified-Since" header for caching
                     bool sendfile = true;
-                    QByteArray ifModifiedSince = hdr.rawHeader("If-Modified-Since");
+                    QByteArray ifModifiedSince = reqHeader.rawHeader("If-Modified-Since");
 
                     if (!ifModifiedSince.isEmpty()) {
                         QDateTime dt = THttpUtility::fromHttpDateTimeString(ifModifiedSince);
-                        sendfile = (!dt.isValid() || dt != fi.lastModified());
+                        if (dt.isValid()) {
+                            sendfile = (dt.toMSecsSinceEpoch() / 1000 != fi.lastModified().toMSecsSinceEpoch() / 1000);
+                        }
                     }
 
                     if (sendfile) {
@@ -280,8 +289,16 @@ void TActionContext::execute(THttpRequest &request, int sid)
                         accessLogger.setResponseBytes( bytes );
                     }
                 } else {
-                    int bytes = writeResponse(Tf::NotFound, responseHeader);
-                    accessLogger.setResponseBytes( bytes );
+                    if (! route.exists) {
+                        int bytes = writeResponse(Tf::NotFound, responseHeader);
+                        accessLogger.setResponseBytes( bytes );
+                    } else {
+                        // Routing not empty, redirect.
+                        responseHeader.setRawHeader("Location", QUrl(path).toEncoded());
+                        responseHeader.setContentType("text/html");
+                        int bytes = writeResponse(Tf::Found, responseHeader);
+                        accessLogger.setResponseBytes( bytes );
+                    }
                 }
                 accessLogger.setStatusCode( responseHeader.statusCode() );
 
@@ -348,6 +365,10 @@ qint64 TActionContext::writeResponse(int statusCode, THttpResponseHeader &header
 {
     T_TRACEFUNC("statusCode:%d", statusCode);
     QByteArray body;
+
+    if (statusCode == Tf::NotModified) {
+        return writeResponse(statusCode, header, QByteArray(), nullptr, 0);
+    }
     if (statusCode >= 400) {
         QFile html(Tf::app()->publicPath() + QString::number(statusCode) + ".html");
         if (html.exists() && html.open(QIODevice::ReadOnly)) {
@@ -373,8 +394,9 @@ qint64 TActionContext::writeResponse(int statusCode, THttpResponseHeader &header
     T_TRACEFUNC("statusCode:%d  contentType:%s  length:%s", statusCode, contentType.data(), qPrintable(QString::number(length)));
 
     header.setStatusLine(statusCode, THttpUtility::getResponseReasonPhrase(statusCode));
-    if (!contentType.isEmpty())
+    if (!contentType.isEmpty()) {
         header.setContentType(contentType);
+    }
 
     return writeResponse(header, body, length);
 }

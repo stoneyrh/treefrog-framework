@@ -72,8 +72,7 @@ bool TSqlQuery::load(const QString &filename)
 */
 QString TSqlQuery::queryDirPath() const
 {
-    QString dir = Tf::app()->webRootPath() + QDir::separator() + Tf::appSettings()->value(Tf::SqlQueriesStoredDirectory).toString();
-
+    QString dir = Tf::app()->webRootPath() + Tf::appSettings()->value(Tf::SqlQueriesStoredDirectory).toString();
     dir.replace(QChar('/'), QDir::separator());
     return dir;
 }
@@ -105,7 +104,7 @@ QString TSqlQuery::escapeIdentifier(const QString &identifier, QSqlDriver::Ident
 QString TSqlQuery::escapeIdentifier(const QString &identifier, QSqlDriver::IdentifierType type, const QSqlDriver *driver)
 {
     QString ret = identifier;
-    if (!driver->isIdentifierEscaped(identifier, type)) {
+    if (driver && !driver->isIdentifierEscaped(identifier, type)) {
         ret = driver->escapeIdentifier(identifier, type);
     }
     return ret;
