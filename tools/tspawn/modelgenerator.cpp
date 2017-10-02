@@ -64,8 +64,8 @@
     "\n"                                                 \
     "    TModelObject *modelData() override;\n"          \
     "    const TModelObject *modelData() const override;\n" \
-    "    friend QDataStream &operator<<(QDataStream &ds, const %2 &model);\n" \
-    "    friend QDataStream &operator>>(QDataStream &ds, %2 &model);\n" \
+    "    friend QDataStream &operator<<(QDataStream &ds, const %3 &model);\n" \
+    "    friend QDataStream &operator>>(QDataStream &ds, %3 &model);\n" \
     "};\n"                                               \
     "\n"                                                 \
     "Q_DECLARE_METATYPE(%3)\n"                           \
@@ -78,38 +78,38 @@
     "#include \"%1.h\"\n"                                     \
     "#include \"%1object.h\"\n"                               \
     "\n"                                                      \
-    "%3::%3()\n"                                              \
-    "    : TAbstractModel(), d(new %3Object())\n"             \
+    "%2::%2()\n"                                              \
+    "    : TAbstractModel(), d(new %2Object())\n"             \
     "{%4}\n"                                                  \
     "\n"                                                      \
-    "%3::%3(const %3 &other)\n"                               \
-    "    : TAbstractModel(), d(new %3Object(*other.d))\n"     \
+    "%2::%2(const %2 &other)\n"                               \
+    "    : TAbstractModel(), d(new %2Object(*other.d))\n"     \
     "{ }\n"                                                   \
     "\n"                                                      \
-    "%3::%3(const %3Object &object)\n"                        \
-    "    : TAbstractModel(), d(new %3Object(object))\n"       \
+    "%2::%2(const %2Object &object)\n"                        \
+    "    : TAbstractModel(), d(new %2Object(object))\n"       \
     "{ }\n"                                                   \
     "\n"                                                      \
-    "%3::~%3()\n"                                             \
+    "%2::~%2()\n"                                             \
     "{\n"                                                     \
     "    // If the reference count becomes 0,\n"              \
-    "    // the shared data object '%3Object' is deleted.\n"  \
+    "    // the shared data object '%2Object' is deleted.\n"  \
     "}\n"                                                     \
     "\n"                                                      \
     "%5"                                                      \
-    "%3 &%3::operator=(const %3 &other)\n"                    \
+    "%2 &%2::operator=(const %2 &other)\n"                    \
     "{\n"                                                     \
     "    d = other.d;  // increments the reference count of the data\n" \
     "    return *this;\n"                                     \
     "}\n\n"                                                   \
-    "%3 %3::create(%6)\n"                                     \
+    "%2 %2::create(%6)\n"                                     \
     "{\n"                                                     \
     "%7"                                                      \
     "}\n"                                                     \
     "\n"                                                      \
-    "%3 %3::create(const QVariantMap &values)\n"              \
+    "%2 %2::create(const QVariantMap &values)\n"              \
     "{\n"                                                     \
-    "    %3 model;\n"                                         \
+    "    %2 model;\n"                                         \
     "    model.setProperties(values);\n"                      \
     "    if (!model.d->create()) {\n"                         \
     "        model.d->clear();\n"                             \
@@ -117,30 +117,30 @@
     "    return model;\n"                                     \
     "}\n"                                                     \
     "\n"                                                      \
-    "%3 %3::get(%8)\n"                                        \
+    "%2 %2::get(%8)\n"                                        \
     "{\n"                                                     \
     "%9"                                                      \
     "}\n"                                                     \
     "\n"                                                      \
     "%11"                                                     \
-    "int %3::count()\n"                                       \
+    "int %2::count()\n"                                       \
     "{\n"                                                     \
-    "    %14<%3Object> mapper;\n"                             \
+    "    %14<%2Object> mapper;\n"                             \
     "    return mapper.findCount();\n"                        \
     "}\n"                                                     \
     "\n"                                                      \
-    "QList<%3> %3::getAll()\n"                                \
+    "QList<%2> %2::getAll()\n"                                \
     "{\n"                                                     \
-    "    return tfGetModelListBy%12Criteria<%3, %3Object>(TCriteria());\n" \
+    "    return tfGetModelListBy%12Criteria<%2, %2Object>(TCriteria());\n" \
     "}\n"                                                     \
     "\n"                                                      \
     "%13"                                                     \
-    "TModelObject *%3::modelData()\n"                         \
+    "TModelObject *%2::modelData()\n"                         \
     "{\n"                                                     \
     "    return d.data();\n"                                  \
     "}\n"                                                     \
     "\n"                                                      \
-    "const TModelObject *%3::modelData() const\n"             \
+    "const TModelObject *%2::modelData() const\n"             \
     "{\n"                                                     \
     "    return d.data();\n"                                  \
     "}\n"                                                     \
